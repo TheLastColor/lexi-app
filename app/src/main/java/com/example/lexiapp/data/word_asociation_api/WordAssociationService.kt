@@ -11,6 +11,7 @@ interface WordAssociationService {
     suspend fun getWordToWhereIsTheLetterGame(
         @Query("number") count: Int = 1,
         @Query("length") maxLength: Int,
+        @Query("minLength") minLength: Int = 3,
         @Query("lang") language: String = "es"
     ): Response<List<String>>
 
