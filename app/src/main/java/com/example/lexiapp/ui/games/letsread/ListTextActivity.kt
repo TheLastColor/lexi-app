@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class ListTextActivity : AppCompatActivity() {
     private lateinit var binding: ActivityListTextBinding
+
     //Should be inject
     private val viewModel: TextViewModel by viewModels()
 
@@ -41,14 +42,14 @@ class ListTextActivity : AppCompatActivity() {
     }
 
     private fun setRecyclerView() {
-        binding.rvText.layoutManager=LinearLayoutManager(this)
+        binding.rvText.layoutManager = LinearLayoutManager(this)
         suscribeToVM()
     }
 
     private fun suscribeToVM() {
         val gson = Gson()
         viewModel.listText.observe(this) { list ->
-            binding.rvText.adapter = TextAdapter(list){
+            binding.rvText.adapter = TextAdapter(list) {
                 val intent = Intent(this, LetsReadActivity::class.java)
                 intent.putExtra("TextToRead", gson.toJson(it))
                 startActivity(intent)
@@ -57,10 +58,11 @@ class ListTextActivity : AppCompatActivity() {
     }
 
 
-    private val onBackPressedCallback: OnBackPressedCallback = object: OnBackPressedCallback(true){
-        override fun handleOnBackPressed() {
-            finish()
+    private val onBackPressedCallback: OnBackPressedCallback =
+        object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+            }
         }
-    }
 
 }
