@@ -18,6 +18,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,10 +27,16 @@ import com.example.lexiapp.databinding.ActivityLetsReadBinding
 import com.example.lexiapp.domain.model.TextToRead
 import com.google.android.material.button.MaterialButton
 import com.google.gson.Gson
+import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import java.util.*
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class LetsReadActivity : AppCompatActivity() {
+
+    private val viewModel: LetsReadViewModel by viewModels()
+
     private lateinit var binding: ActivityLetsReadBinding
     private lateinit var textToSpeech: TextToSpeech
     private lateinit var btnPlayAudioText: ImageButton

@@ -3,9 +3,12 @@ package com.example.lexiapp.ui.games.letsread
 import androidx.lifecycle.*
 import com.example.lexiapp.data.repository.texttoread.TextToReadMocks
 import com.example.lexiapp.domain.model.TextToRead
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class TextViewModel: ViewModel() {
+@HiltViewModel
+class TextViewModel @Inject constructor() : ViewModel() {
     private val _listText = MutableLiveData<List<TextToRead>>()
     val listText: LiveData<List<TextToRead>> = _listText
     private val _textSelected = MutableLiveData<TextToRead>()
@@ -18,13 +21,6 @@ class TextViewModel: ViewModel() {
             _listText.value = getText()
         }*/
     }
-
-    class Factory() : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return TextViewModel() as T
-        }
-    }
-
 
     private fun getText() = TextToReadMocks.getAllTextToReadMocks()
 

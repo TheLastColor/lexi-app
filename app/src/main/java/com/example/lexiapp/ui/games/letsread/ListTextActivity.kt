@@ -5,16 +5,19 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.lexiapp.databinding.ActivityListTextBinding
 import com.example.lexiapp.ui.adapter.TextAdapter
 import com.google.gson.Gson
+import dagger.hilt.android.AndroidEntryPoint
 
-class ListTextActivity () : AppCompatActivity() {
+@AndroidEntryPoint
+class ListTextActivity : AppCompatActivity() {
     private lateinit var binding: ActivityListTextBinding
     //Should be inject
-    private lateinit var vM: TextViewModel
+    private val viewModel: TextViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,15 +27,8 @@ class ListTextActivity () : AppCompatActivity() {
         //To handle when user do back gesture
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
-        setVM()
         setListener()
         setRecyclerView()
-    }
-
-    private fun setVM(){
-        //Should be inject
-        val factory = TextViewModel.Factory() // Factory
-        vM= ViewModelProvider(this, factory)[TextViewModel::class.java]
     }
 
     private fun setListener() {
@@ -51,7 +47,7 @@ class ListTextActivity () : AppCompatActivity() {
 
     private fun suscribeToVM() {
         val gson = Gson()
-        vM.listText.observe(this) { list ->
+        viewModel.listText.observe(this) { list ->
             binding.rvText.adapter = TextAdapter(list){
                 val intent = Intent(this, LetsReadActivity::class.java)
                 intent.putExtra("TextToRead", gson.toJson(it))
