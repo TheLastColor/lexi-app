@@ -43,6 +43,12 @@ android {
         viewBinding true
     }
 }
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+
+    }
+}
 
 dependencies {
     def mockkVersion = "1.13.5"
