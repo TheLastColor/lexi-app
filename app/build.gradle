@@ -7,20 +7,14 @@ plugins {
 }
 
 android {
-    kapt {
-        javacOptions {
-            option("-source", "11")
-            option("-target", "11")
-        }
-    }
     namespace 'com.example.lexiapp'
     compileSdk 33
-    compileSdkPreview "UpsideDownCake"
+    compileSdkPreview 'UpsideDownCake'
 
     defaultConfig {
         applicationId "com.example.lexiapp"
-        targetSdkPreview "UpsideDownCake"
-        minSdk 24
+        targetSdkPreview 'UpsideDownCake'
+        minSdk 26
         targetSdk 33
         versionCode 1
         versionName "1.0"
