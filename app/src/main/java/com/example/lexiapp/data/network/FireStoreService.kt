@@ -79,6 +79,6 @@ class FireStoreService @Inject constructor(firebase: FirebaseClient) {
     }
 
     suspend fun getOpenAICollectionDocumentReference(document: String) = flow{
-            emit(openaiCollection.document(document))
+        emit(openaiCollection.document(document))
     }
 }
