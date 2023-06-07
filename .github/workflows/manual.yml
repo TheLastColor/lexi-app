@@ -27,10 +27,8 @@ jobs:
         run: echo $DATA | base64 -d > /home/runner/work/lexi-app/lexi-app/app/google-services.json
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
-      - name: Refresh dependencies
-        run: bash apt-get install libc6-dev-i386 lib32z1 openjdk-8-jdk
       - name: Build APK
-        run: bash ./gradlew assembleDebug --stacktrace --info
+        run: bash ./gradlew assembleDebug --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v1
         with:
