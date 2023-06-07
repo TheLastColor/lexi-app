@@ -9,6 +9,7 @@ plugins {
 android {
     namespace 'com.example.lexiapp'
     compileSdk 33
+    buildToolsVersion "33.0.1"
     compileSdkPreview 'UpsideDownCake'
 
     defaultConfig {
