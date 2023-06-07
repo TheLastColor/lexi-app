@@ -30,7 +30,7 @@ jobs:
       - name: Refresh dependencies
         run: bash ./gradlew --refresh-dependencies
       - name: Build APK
-        run: bash ./gradlew assembleDebug --stacktrace
+        run: bash ./gradlew assembleDebug --stacktrace --info
       - name: Upload APK
         uses: actions/upload-artifact@v1
         with:
