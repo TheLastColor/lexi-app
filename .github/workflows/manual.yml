@@ -26,6 +26,8 @@ jobs:
         run: echo $DATA | base64 -d > /home/runner/work/lexi-app/lexi-app/app/google-services.json
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
+      - name: Refresh dependencies
+        run: bash ./gradlew --refresh-dependencies
       - name: Build APK
         run: bash ./gradlew assembleDebug --stacktrace
       - name: Upload APK
