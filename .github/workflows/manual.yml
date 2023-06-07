@@ -28,7 +28,7 @@ jobs:
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
       - name: Refresh dependencies
-        run: bash ./gradlew --refresh-dependencies
+        run: bash android update sdk --no-ui --all
       - name: Build APK
         run: bash ./gradlew assembleDebug --stacktrace --info
       - name: Upload APK
