@@ -7,6 +7,12 @@ plugins {
 }
 
 android {
+    kapt {
+        javacOptions {
+            option("-source", "11")
+            option("-target", "11")
+        }
+    }
     namespace 'com.example.lexiapp'
     compileSdk 33
     compileSdkPreview "UpsideDownCake"
