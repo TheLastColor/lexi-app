@@ -1,29 +1,32 @@
 package com.example.lexiapp.domain.useCases
 
-import com.example.lexiapp.data.network.AuthenticationService
-import com.example.lexiapp.data.response.LoginResult
+import android.content.SharedPreferences
+import com.example.lexiapp.data.network.AuthenticationServiceImpl
+import com.example.lexiapp.domain.model.LoginResult
 import com.example.lexiapp.domain.model.UserSignUp
+import com.example.lexiapp.domain.service.FireStoreService
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.RelaxedMockK
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
 class SignUpUseCasesTest {
 
     @RelaxedMockK
-    private lateinit var mAuth: AuthenticationService
+    private lateinit var mAuth: AuthenticationServiceImpl
+    @RelaxedMockK
+    private lateinit var firestore: FireStoreService
+    @RelaxedMockK
+    private lateinit var sharedPreferences: SharedPreferences
 
     lateinit var signUpUseCases: SignUpUseCases
-
-    private lateinit var profileUseCases: ProfileUseCases
 
     @Before
     fun onBefore() {
         MockKAnnotations.init(this)
-        signUpUseCases = SignUpUseCases(mAuth)
+        signUpUseCases = SignUpUseCases(mAuth, firestore, sharedPreferences)
     }
 
     @Test

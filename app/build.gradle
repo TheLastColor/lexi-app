@@ -72,8 +72,9 @@ dependencies {
     //Analytics
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
-    //Auth
+    //Firestore
     implementation 'com.google.firebase:firebase-firestore-ktx'
+
     //Auth
     implementation 'com.google.firebase:firebase-auth-ktx'
 
@@ -107,6 +108,17 @@ dependencies {
     implementation "com.google.dagger:hilt-android:$hilt_version"
     implementation "androidx.fragment:fragment-ktx:1.5.7"
     kapt "com.google.dagger:hilt-android-compiler:$hilt_version"
+
+    //ZXing and library impl
+    implementation 'com.google.zxing:core:3.3.0'
+    implementation('com.journeyapps:zxing-android-embedded:4.3.0') { transitive = false }
+
+    //Photo Cropper
+    implementation("com.vanniktech:android-image-cropper:4.5.0")
+
+    //LottieFile
+    def lottieVersion = "3.4.0"
+    implementation "com.airbnb.android:lottie:$lottieVersion"
 }
 kapt {
     correctErrorTypes true
