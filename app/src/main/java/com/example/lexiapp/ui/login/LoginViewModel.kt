@@ -10,19 +10,24 @@ import com.example.lexiapp.domain.useCases.LoginUseCases
 import com.example.lexiapp.domain.model.UserLogin
 import com.example.lexiapp.domain.useCases.ProfileUseCases
 import com.example.lexiapp.domain.model.FirebaseResult
+import com.example.lexiapp.domain.useCases.CategoriesUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCases: LoginUseCases,
-    private val profileUseCases: ProfileUseCases
+    private val profileUseCases: ProfileUseCases,
+    private val categoriesUseCases: CategoriesUseCases
 ) : ViewModel() {
 
-    val authResult = MutableLiveData<FirebaseResult>()
+    private val _recoverResult = MutableLiveData<FirebaseResult?>()
+    val recoverResult = _recoverResult as LiveData<FirebaseResult?>
 
     private val _navigateToHome = MutableLiveData<Event<Boolean>>()
     val navigateToHome: LiveData<Event<Boolean>>
@@ -40,6 +45,14 @@ class LoginViewModel @Inject constructor(
     val professionalState: LiveData<Int>
     get() = _professionalState
 
+    private var _hasChoosedCategories = MutableLiveData(false)
+    val hasChoosedCategories: LiveData<Boolean>
+    get() = _hasChoosedCategories
+
+    init{
+        cleanRecoverResult()
+    }
+
     fun loginUser(email: String, password: String) {
         viewModelScope.launch {
             //_viewState.value = LoginViewState(isLoading = true)
@@ -52,7 +65,7 @@ class LoginViewModel @Inject constructor(
 
                 is LoginResult.Success -> {
                     profileUseCases.saveProfile(UserLogin(email=email))
-                    setUserType()
+                    setUserType(email)
                     _navigateToHome.value = Event(true)
                 }
             }
@@ -60,10 +73,16 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun setUserType(){
+    private fun setUserType(email: String) {
         viewModelScope.launch(Dispatchers.IO){
             val userType = profileUseCases.getUserType()
             if(userType != null){
+                if(userType == "patient") {
+                    val hashChooseCategories = categoriesUseCases.getCategoriesFromFirestore(email).isNotEmpty()
+                    withContext(Dispatchers.Main){
+                        _hasChoosedCategories.value = hashChooseCategories
+                    }
+                }
                 withContext(Dispatchers.Main){
                     _userType.value = userType
                 }
@@ -76,6 +95,19 @@ class LoginViewModel @Inject constructor(
           2 -> _professionalState.value = 2
           1 -> _professionalState.value = 1
       }
+    }
+
+    fun sendRecoverEmail(email: String){
+        viewModelScope.launch {
+            loginUseCases.sendRecoverEmail(email).collect{ result ->
+                _recoverResult.value=result
+            }
+        }
+
+    }
+
+    fun cleanRecoverResult() {
+        _recoverResult.value=null
     }
 }
 
