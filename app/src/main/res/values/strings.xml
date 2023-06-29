@@ -109,6 +109,7 @@
     <string name="write_note">Escribe tu nota aquí</string>
     <string name="save_note">Guardar nota</string>
     <string name="dont_give_up_large_message">AUNQUE NO ESTÉ DEL TODO CORRECTO,¡ÁNIMO! ¡YA CASI LO LOGRAS!</string>
+    <string name="email_sent">TE ENVIAMOS UN CORREO AL MAIL QUE NOS DISTE, POR FAVOR ABRÍ TU CASILLA DE CORREO Y CONFIRMA TU MAIL PARA CONTINUAR</string>
     <plurals name="days_left">
         <item quantity="one">Día Restante: %d </item>
         <item quantity="other">Días Restantes: %d </item>

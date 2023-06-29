@@ -11,6 +11,8 @@ interface AuthenticationService {
 
     suspend fun createAccount(email: String, password: String): LoginResult
 
+    fun sendEmailVerification()
+
     fun signOut()
 
     suspend fun sendRecoverEmail(email: String): Flow<FirebaseResult>

@@ -22,6 +22,7 @@ class SignUpUseCases @Inject constructor(
         if (!verifyPassword(user.password) || user.password != user.passwordConfirm) {
             return LoginResult.Error
         }
+        authenticationServiceImpl.sendEmailVerification()
         return authenticationServiceImpl.createAccount(user.email, user.password)
     }
 

@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.lexiapp.R
 import com.example.lexiapp.databinding.ActivityCategoriesBinding
 import com.example.lexiapp.ui.patienthome.HomePatientActivity
+import com.example.lexiapp.ui.signup.emailconfirmation.WaitingForEmailConfirmationActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import dagger.hilt.android.AndroidEntryPoint
@@ -160,7 +161,7 @@ class CategoriesActivity : AppCompatActivity() {
     private fun setObservers(){
         viewModel.categoriesSavedSuccessful.observe(this){
             if(it){
-                startActivity(Intent(this, HomePatientActivity::class.java))
+                startActivity(Intent(this, WaitingForEmailConfirmationActivity::class.java))
                 finish()
             }
         }

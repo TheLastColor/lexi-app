@@ -107,6 +107,9 @@
             android:name=".ui.games.letsread.ResultActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.signup.emailconfirmation.WaitingForEmailConfirmationActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.main.MainActivity"
             android:exported="true">
             <intent-filter>

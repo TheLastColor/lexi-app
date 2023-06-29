@@ -47,4 +47,9 @@ class AuthenticationServiceImpl @Inject constructor(private val firebase: Fireba
             emit(FirebaseResult.TaskFailure)
         }
     }
+
+    override fun sendEmailVerification(){
+        val currentUser = firebase.auth.currentUser
+        currentUser!!.sendEmailVerification()
+    }
 }
