@@ -1,4 +1,4 @@
-<!-- objective_item.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -9,7 +9,7 @@
     <View
         android:id="@+id/btnObjective"
         android:layout_width="350dp"
-        android:layout_height="90dp"
+        android:layout_height="100dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -23,8 +23,9 @@
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="@id/btnObjective"
         app:layout_constraintTop_toTopOf="@id/btnObjective"
-        app:layout_constraintBottom_toBottomOf="@id/btnObjective"
+        app:layout_constraintBottom_toTopOf="@id/txtDateComplete"
         tools:text="Título del objetivo"
+        android:layout_marginTop="10dp"
         android:textColor="@color/white"
         android:layout_marginStart="10dp"
         android:textAppearance="@style/objectives"
@@ -38,12 +39,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="@id/btnObjective"
-        app:layout_constraintTop_toTopOf="@id/btnObjective"
-        app:layout_constraintBottom_toBottomOf="@id/btnObjective"
+        app:layout_constraintTop_toTopOf="@id/tvObjectiveTitle"
+        app:layout_constraintBottom_toBottomOf="@id/tvObjectiveTitle"
         tools:text="1/3"
+        android:layout_marginTop="10dp"
         android:textColor="@color/white"
         android:layout_marginEnd="10dp"
         android:textAppearance="@style/objectives"
         android:maxLength="5" />
+
+    <TextView
+        android:id="@+id/txtDateComplete"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@id/btnObjective"
+        app:layout_constraintStart_toStartOf="@id/tvObjectiveTitle"
+        app:layout_constraintTop_toBottomOf="@id/tvObjectiveTitle"
+        android:textColor="@color/white"
+        android:text="FECHA"
+        android:layout_marginBottom="10dp"
+        android:textAppearance="@style/objectives"
+        app:layout_constraintEnd_toStartOf="@id/tvObjectiveProgress"
+        android:ellipsize="end"
+        android:maxLines="2" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

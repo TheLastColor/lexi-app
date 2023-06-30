@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lexiapp.domain.model.gameResult.CorrectWordGameResult
+import com.example.lexiapp.domain.service.FireStoreService
 import com.example.lexiapp.domain.useCases.CorrectWordUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -53,5 +54,5 @@ class CorrectWordViewModel @Inject constructor(
         }
         return success
     }
-
 }
+

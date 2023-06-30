@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.lexiapp.domain.model.FirebaseResult
 import com.example.lexiapp.domain.model.User
 import com.example.lexiapp.domain.model.gameResult.CorrectWordGameResult
+import com.example.lexiapp.domain.model.gameResult.LetsReadGameResult
 import com.example.lexiapp.domain.model.gameResult.ResultGame
 import com.example.lexiapp.domain.model.gameResult.WhereIsTheLetterResult
 import com.example.lexiapp.domain.useCases.CodeQRUseCases
@@ -17,7 +18,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 @HiltViewModel
 class ProfesionalHomeViewModel @Inject constructor(
@@ -26,6 +26,16 @@ class ProfesionalHomeViewModel @Inject constructor(
     private val resultGamesUseCases: ResultGamesUseCases
 ) : ViewModel() {
 
+    private var _wasNotPlayedCW = MutableLiveData<Boolean>()
+    val wasNotPlayedCW = _wasNotPlayedCW as LiveData<Boolean>
+    private var _wasNotPlayedWITL = MutableLiveData<Boolean>()
+    val wasNotPlayedWITL = _wasNotPlayedWITL as LiveData<Boolean>
+
+    private var _errorWordsLR = MutableLiveData<List<String>>()
+    val errorWordsLR = _errorWordsLR as LiveData<List<String>>
+
+    private var _totalTimesPlayedLR = MutableLiveData<Int>()
+    val totalTimesPlayedLR = _totalTimesPlayedLR as LiveData<Int>
 
     private var _hardWordsCW = MutableLiveData<List<String>>()
     val hardWordsCW = _hardWordsCW as LiveData<List<String>>
@@ -43,28 +53,40 @@ class ProfesionalHomeViewModel @Inject constructor(
     private var _resultDeletePatient = MutableLiveData<FirebaseResult>()
     val resultDeletePatient: LiveData<FirebaseResult> = _resultDeletePatient
 
-    private var _resultSLastWeekWITL = MutableLiveData<Map<String, Triple<Int, Float, Int>>>()
-    val resultSLastWeekWITL: LiveData<Map<String,Triple<Int, Float, Int>>> = _resultSLastWeekWITL
-    private var _resultSLastWeekCW = MutableLiveData<Map<String, Triple<Int, Float, Int>>>()
-    val resultSLastWeekCW: LiveData<Map<String,Triple<Int, Float, Int>>> = _resultSLastWeekCW
+    private var _resultsLastWeekLR = MutableLiveData<Map<String, Triple<Int, Float, Int>>>()
+    val resultsLastWeekLR: LiveData<Map<String, Triple<Int, Float, Int>>> = _resultsLastWeekLR
+    private var _resultsLastWeekWITL = MutableLiveData<Map<String, Triple<Int, Float, Int>>>()
+    val resultsLastWeekWITL: LiveData<Map<String, Triple<Int, Float, Int>>> = _resultsLastWeekWITL
+    private var _resultsLastWeekCW = MutableLiveData<Map<String, Triple<Int, Float, Int>>>()
+    val resultsLastWeekCW: LiveData<Map<String, Triple<Int, Float, Int>>> = _resultsLastWeekCW
 
+    private var _totalPieLR = MutableLiveData<Pair<Float, Float>>()
+    val totalPieLR: LiveData<Pair<Float, Float>> = _totalPieLR
     private var _totalPieCW = MutableLiveData<Pair<Float, Float>>()
-    val totalPieCW : LiveData<Pair<Float, Float>> = _totalPieCW
+    val totalPieCW: LiveData<Pair<Float, Float>> = _totalPieCW
     private var _totalPieWITL = MutableLiveData<Pair<Float, Float>>()
-    val totalPieWITL : LiveData<Pair<Float, Float>> = _totalPieWITL
+    val totalPieWITL: LiveData<Pair<Float, Float>> = _totalPieWITL
+
+    private var _weekPieLR = MutableLiveData<Pair<Float, Float>>()
+    val weekPieLR: LiveData<Pair<Float, Float>> = _weekPieLR
     private var _weekPieCW = MutableLiveData<Pair<Float, Float>>()
-    val weekPieCW : LiveData<Pair<Float, Float>> = _weekPieCW
+    val weekPieCW: LiveData<Pair<Float, Float>> = _weekPieCW
     private var _weekPieWITL = MutableLiveData<Pair<Float, Float>>()
-    val weekPieWITL : LiveData<Pair<Float, Float>> = _weekPieWITL
+    val weekPieWITL: LiveData<Pair<Float, Float>> = _weekPieWITL
+
+    private var _allDataTS = MutableLiveData<Pair<Int,Map<String, Int>>>()
+    val allDataTS: LiveData<Pair<Int,Map<String, Int>>> = _allDataTS
 
     init {
+        _wasNotPlayedWITL.value = false
+        _wasNotPlayedCW.value = false
         listenerOfPatients()
     }
 
     fun listenerOfPatients() {
         viewModelScope.launch {
             linkUseCases.getListLinkPatientOfProfessional().collect { list ->
-                patients(list).collect{ patients ->
+                patients(list).collect { patients ->
                     _listPatient.value = patients
                     _listFilterPatient.value = _listPatient.value
                 }
@@ -72,13 +94,13 @@ class ProfesionalHomeViewModel @Inject constructor(
         }
     }
 
-    suspend fun patients(emails: List<String>) = flow{
-            val patients = mutableListOf<User>()
-            emails.forEach { email ->
-                patients.add(linkUseCases.getUser(email))
-            }
-            emit (patients)
+    suspend fun patients(emails: List<String>) = flow {
+        val patients = mutableListOf<User>()
+        emails.forEach { email ->
+            patients.add(linkUseCases.getUser(email))
         }
+        emit(patients)
+    }
 
     fun getScanOptions() = codeQRUseCases.getScanOptions()
 
@@ -107,35 +129,78 @@ class ProfesionalHomeViewModel @Inject constructor(
             this.launch {
                 setCWStats(patient)
             }
+            this.launch {
+                setLRStats(patient)
+            }
+            this.launch {
+                setTSStats(patient)
+            }
         }
+    }
+
+    private suspend fun setTSStats(patient: User) {
+        resultGamesUseCases.getTSResults(patient.email).collect{
+            _allDataTS.value = if (it.isNotEmpty()) {
+                val results = resultGamesUseCases.generateWeeklyMap(it)
+                Log.v("LOG_WEEKLY_MAP_VM", "${results}")
+                results
+            }else{
+                Pair(0, LinkedHashMap())
+            }
+        }
+    }
+
+    private suspend fun setLRStats(patient: User) {
+        resultGamesUseCases.getLRResults(patient.email).collect {
+            _totalTimesPlayedLR.value = if (it.isNotEmpty()) {
+                setWrongWordsLR(it)
+                setLastResultsLR(it)
+                setDataPiesLR(it)
+                it.size
+            } else {
+                0
+            }
+        }
+    }
+
+    private fun setLastResultsLR(results: List<LetsReadGameResult>) {
+        _resultsLastWeekLR.value = resultGamesUseCases.getResultsLastWeek(results)
+    }
+
+    private fun setWrongWordsLR(results: List<LetsReadGameResult>) {
+        val words = mutableListOf<String>()
+        for (result in results) {
+            words.addAll(result.wrongWords)
+        }
+        _errorWordsLR.value = words
     }
 
     private suspend fun setCWStats(patient: User) {
         resultGamesUseCases.getWhereIsCWResults(patient.email).collect {
             Log.d("CW Result", it.toString())
-            if (it.isNotEmpty()) {
+            _wasNotPlayedCW.value = if (it.isNotEmpty()) {
                 setHardWordsCW(it)
                 setResultsLastWeekCW(it)
                 setDataPiesCW(it)
-            }else {
-                setBlankResultsCW()
+                true
+            } else {
+                false
             }
         }
     }
 
-    private fun setDataPiesCW(results: List<CorrectWordGameResult>){
-        _totalPieCW.value = Pair(results.size.toFloat(),getCountError(results))
-        val weekList=resultGamesUseCases.filterResultsByWeek(results)
-        _weekPieCW.value = Pair(weekList.size.toFloat(), getCountError(weekList))
+    private fun setDataPiesCW(results: List<CorrectWordGameResult>) {
+        _totalPieCW.value = setTotalPie(results)
+        _weekPieCW.value = setWeekPie(results)
+    }
+
+    private fun setDataPiesLR(results: List<LetsReadGameResult>) {
+        _totalPieLR.value = setTotalPie(results)
+        _weekPieLR.value = setWeekPie(results)
     }
 
     private fun setResultsLastWeekCW(results: List<CorrectWordGameResult>) {
-        _resultSLastWeekCW.value=resultGamesUseCases.getResultsLastWeek(results)
-    }
-
-    private fun setBlankResultsCW() {
-        _hardWordsCW.value = emptyList()
-        _resultSLastWeekCW.value = emptyMap()
+        _resultsLastWeekCW.value = resultGamesUseCases.getResultsLastWeek(results)
     }
 
     private fun setHardWordsCW(results: List<CorrectWordGameResult>) {
@@ -148,11 +213,17 @@ class ProfesionalHomeViewModel @Inject constructor(
                 list[result.correctWord]!!.plus(1)
             }
         }
-        val maxCount = list.values.toSet().max()
+        var maxCount: Int? = null
+        try {
+            maxCount = list.values.toSet().max()
+        } catch (e: NoSuchElementException) {
+        }
         val wordList = mutableListOf<String>()
-        for (word in list.keys) {
-            if (list[word] == maxCount) {
-                wordList.add(word)
+        if (maxCount != null) {
+            for (word in list.keys) {
+                if (list[word] == maxCount) {
+                    wordList.add(word)
+                }
             }
         }
         _hardWordsCW.value = wordList
@@ -160,34 +231,47 @@ class ProfesionalHomeViewModel @Inject constructor(
 
     private suspend fun setWITLStats(patient: User) {
         resultGamesUseCases.getWhereIsTheLetterResults(patient.email).collect {
-            if(it.isNotEmpty()){
+            _wasNotPlayedWITL.value = if (it.isNotEmpty()) {
                 setHardLetters(it)
                 setResultsLastWeekWITL(it)
                 setDataPiesWITL(it)
+                true
             } else {
-                setBlankResults()
+                false
             }
         }
     }
 
-    private fun setDataPiesWITL(results: List<WhereIsTheLetterResult>){
-        _totalPieWITL.value = Pair(results.size.toFloat(),getCountError(results))
-        val weekList=resultGamesUseCases.filterResultsByWeek(results)
-        _weekPieWITL.value = Pair(weekList.size.toFloat(), getCountError(weekList))
+    private fun setDataPiesWITL(results: List<WhereIsTheLetterResult>) {
+        _totalPieWITL.value = setTotalPie(results)
+        _weekPieWITL.value = setWeekPie(results)
     }
 
     private fun setResultsLastWeekWITL(results: List<WhereIsTheLetterResult>) {
-        _resultSLastWeekWITL.value=resultGamesUseCases.getResultsLastWeek(results)
+        _resultsLastWeekWITL.value = resultGamesUseCases.getResultsLastWeek(results)
     }
 
     private fun setBlankResults() {
         _hardLettersWITL.value = emptyList()
-        _resultSLastWeekWITL.value = emptyMap()
+        _resultsLastWeekWITL.value = emptyMap()
     }
 
-    private fun getCountError(results: List<ResultGame>): Float{
+    private fun getCountError(results: List<ResultGame>): Float {
         val subList = results.filter { !it.success }
         return subList.size.toFloat()
+    }
+
+    private fun setTotalPie(results: List<ResultGame>): Pair<Float, Float> {
+        val countError = getCountError(results)
+        val countCorrect = (results.size - countError)
+        return Pair(countCorrect, countError)
+    }
+
+    private fun setWeekPie(results: List<ResultGame>): Pair<Float, Float> {
+        val weekList = resultGamesUseCases.filterResultsByWeek(results)
+        val countError = getCountError(weekList)
+        val countCorrect = (weekList.size - countError)
+        return Pair(countCorrect, countError)
     }
 
     private fun setHardLetters(results: List<WhereIsTheLetterResult>) {
@@ -200,11 +284,17 @@ class ProfesionalHomeViewModel @Inject constructor(
                 list[result.mainLetter]!!.plus(1)
             }
         }
-        val maxCount = list.values.toSet().max()
+        var maxCount: Int? = null
+        try {
+            maxCount = list.values.toSet().max()
+        } catch (e: NoSuchElementException) {
+        }
         val letterList = mutableListOf<Char>()
-        for (letter in list.keys) {
-            if (list[letter] == maxCount) {
-                letterList.add(letter)
+        if (maxCount != null) {
+            for (letter in list.keys) {
+                if (list[letter] == maxCount) {
+                    letterList.add(letter)
+                }
             }
         }
         _hardLettersWITL.value = letterList

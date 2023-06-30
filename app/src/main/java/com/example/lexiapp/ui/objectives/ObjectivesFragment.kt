@@ -1,5 +1,9 @@
 package com.example.lexiapp.ui.objectives
 
+import ObjectivesAdapter
+import android.animation.ObjectAnimator
+import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import androidx.fragment.app.Fragment
@@ -11,10 +15,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lexiapp.R
 import com.example.lexiapp.databinding.FragmentObjectivesBinding
-import com.example.lexiapp.ui.adapter.ObjectivesAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.firebase.auth.FirebaseAuth
 import android.os.Looper
+import android.util.Log
+import android.widget.Button
+import com.example.lexiapp.data.network.FireStoreServiceImpl
+import com.example.lexiapp.domain.model.Objective
+import com.example.lexiapp.ui.games.letsread.LetsReadActivity
 
 @AndroidEntryPoint
 class ObjectivesFragment : Fragment() {
@@ -22,7 +30,6 @@ class ObjectivesFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var rvObjectives: RecyclerView
     private lateinit var objectivesAdapter: ObjectivesAdapter
-   // private val handler = Handler()
 
     private val objectivesViewModel: ObjectivesViewModel by viewModels()
 
@@ -38,6 +45,13 @@ class ObjectivesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setUpRecyclerView()
         loadObjectivesWithDelay()
+        setListener()
+    }
+
+    private fun setListener() {
+        binding.imbCompletedObjectives.setOnClickListener {
+            startActivity(Intent(activity, CompletedObjectiveActivity::class.java))
+        }
     }
 
     private fun setUpRecyclerView() {
@@ -45,33 +59,53 @@ class ObjectivesFragment : Fragment() {
         rvObjectives = binding.rvObjectives
         rvObjectives.layoutManager = LinearLayoutManager(requireContext())
         rvObjectives.adapter = objectivesAdapter
+
     }
 
     private fun loadObjectivesWithDelay() {
         Handler(Looper.getMainLooper()).postDelayed({
             saveObjectives()
             loadObjectives()
-        }, 200) // Delay de 1 segundo (1000 milisegundos)
+        }, 300)
     }
 
     private fun loadObjectives() {
         objectivesViewModel.objectives.observe(viewLifecycleOwner) { objectives ->
             objectivesAdapter.updateObjectiveList(objectives)
             objectivesAdapter.notifyDataSetChanged()
+            checkObjectivesCompletion(objectives)
         }
-
         objectivesViewModel.daysLeft.observe(viewLifecycleOwner) { daysLeft ->
-            binding.txtDaysLeft.text = resources.getQuantityString(R.plurals.days_left, daysLeft, daysLeft)
+            val daysLeftText = resources.getQuantityString(R.plurals.days_left, daysLeft, daysLeft)
+            binding.txtDaysLeft.text = daysLeftText
         }
     }
 
     private fun saveObjectives() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        val email = currentUser?.email
-        if (email != null) {
-            objectivesViewModel.saveObjectivesToFirestore(email)
+            objectivesViewModel.saveObjectives()
+    }
+
+    private fun checkObjectivesCompletion(objectives: List<Objective>) {
+        for (i in 0 until objectivesAdapter.itemCount) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                val viewHolder = rvObjectives.findViewHolderForAdapterPosition(i)
+                if (viewHolder is ObjectivesAdapter.ObjectiveViewHolder) {
+                    val button = viewHolder.button
+                    val objective = objectives[i]
+                    if (objective.progress == objective.goal) {
+                        val greenColor = Color.parseColor("#71dea2")
+                        button.setBackgroundColor(greenColor)
+                        val translationXAnimation = ObjectAnimator.ofFloat(
+                            button, "translationX",0f, -30f, 30f, -30f, 30f, 0f
+                        )
+                        translationXAnimation.duration = 1000
+                        translationXAnimation.start()
+                    }
+                }
+            }, 200)
         }
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

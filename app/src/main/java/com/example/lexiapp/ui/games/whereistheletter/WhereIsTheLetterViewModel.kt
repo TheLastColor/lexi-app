@@ -3,12 +3,14 @@ package com.example.lexiapp.ui.games.whereistheletter
 import android.util.Log
 import androidx.lifecycle.*
 import com.example.lexiapp.domain.model.gameResult.WhereIsTheLetterResult
+import com.example.lexiapp.domain.service.FireStoreService
 import com.example.lexiapp.domain.useCases.LetterGameUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -51,30 +53,31 @@ class WhereIsTheLetterViewModel @Inject constructor(
     }
 
     fun onSubmitAnswer() {
-        var success = false
-        if (_selectedPosition.value == _correctPosition.value || checkChar()) {
-            _correctAnswerSubmitted.value = true
-            success = true
-        } else {
-            _incorrectAnswerSubmitted.value = true
-        }
+        val success = validateAnswer()
+        Log.v("SUCCES_ANSWER", "$success")
         viewModelScope.launch(Dispatchers.IO) {
-            getLetterWithPosition()?.let {
-                WhereIsTheLetterResult(
-                    email= "",
-                    mainLetter = letter.value!!,
-                    selectedLetter = it,
-                    word = basicWord.value!!,
-                    success = success,
-                    date = null
-                )
-            }?.let {
-                letterGameUseCases.saveWordInFirebase(
-                    it
-                )
-            }
+            val result = WhereIsTheLetterResult(
+                email = "",
+                mainLetter = letter.value!!,
+                selectedLetter = getLetterWithPosition()!!,
+                word = basicWord.value!!,
+                success = success,
+                date = null
+            )
+            letterGameUseCases.saveWordInFirebase(result)
         }
     }
+
+    private fun validateAnswer()=
+        if (_selectedPosition.value == _correctPosition.value || checkChar()) {
+            _correctAnswerSubmitted.value = true
+            Log.v("SAVE_ANSWER", "${_selectedPosition.value}//${_correctPosition.value}//${checkChar()}")
+            true
+        } else {
+            Log.v("SAVE_ANSWER", "${_selectedPosition.value}//${_correctPosition.value}//${checkChar()}//${getLetterWithPosition()}")
+            _incorrectAnswerSubmitted.value = true
+            false
+        }
 
     private fun checkChar() = if (_selectedPosition.value != null)
         _basicWord.value!![_selectedPosition.value!!] == _basicWord.value!![_correctPosition.value] else false
@@ -116,7 +119,7 @@ class WhereIsTheLetterViewModel @Inject constructor(
         _incorrectAnswerSubmitted.value = false
     }
 
-    private fun getLetterWithPosition() = _selectedPosition.value?.let { _basicWord.value?.get(it) }
+    private fun getLetterWithPosition() = _basicWord.value?.get(_selectedPosition.value!!)
 
     fun getCorrectPosition() = _correctPosition.value
 
