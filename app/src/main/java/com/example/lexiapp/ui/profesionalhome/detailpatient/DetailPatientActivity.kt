@@ -1,58 +1,52 @@
 package com.example.lexiapp.ui.profesionalhome.detailpatient
 
-import android.content.ContentValues.TAG
+import android.content.ContentValues
 import android.graphics.Color
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.fragment.app.Fragment
-import com.example.lexiapp.databinding.FragmentDetailPatientBinding
-import androidx.fragment.app.activityViewModels
 import com.example.lexiapp.R
+import com.example.lexiapp.databinding.ActivityDetailPatientBinding
 import com.example.lexiapp.domain.model.FirebaseResult
 import com.example.lexiapp.domain.model.User
-import com.example.lexiapp.ui.profesionalhome.ProfesionalHomeViewModel
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.google.gson.Gson
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 @AndroidEntryPoint
-class DetailPatientFragment : Fragment() {
+class DetailPatientActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityDetailPatientBinding
+    private val viewModel: DetailPatientViewModel by viewModels()
 
-    private var _binding: FragmentDetailPatientBinding? = null
-    private val binding get() = _binding!!
-
-    private val viewModel: ProfesionalHomeViewModel by activityViewModels()
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentDetailPatientBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        //setVisibilityCards()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityDetailPatientBinding.inflate(LayoutInflater.from(this))
+        setContentView(binding.root)
+        setPatientData(getPatient())
         setObservers()
+        setBtnClose()
     }
 
-    private fun setVisibilityCards() {
-        binding.cvMetricsCW.visibility = View.GONE
-        binding.cvMetricsWITL.visibility = View.GONE
-        binding.cvMetricsCW.visibility = View.GONE
+    private fun getPatient(): User {
+        val patient = intent.getStringExtra("patient")
+        return Gson().fromJson(patient, User::class.java)
+    }
+
+    private fun setPatientData(patient: User) {
+        viewModel.setPatientSelected(patient)
     }
 
     private fun setView() {
@@ -60,7 +54,7 @@ class DetailPatientFragment : Fragment() {
     }
 
     private fun setObservers() {
-        viewModel.patientSelected.observe(viewLifecycleOwner) { patient ->
+        viewModel.patientSelected.observe(this) { patient ->
             if (patient != null) bind(patient)
             setView()
         }
@@ -71,13 +65,13 @@ class DetailPatientFragment : Fragment() {
     }
 
     private fun setTSObservers() {
-        viewModel.allDataTS.observe(viewLifecycleOwner) { (total, dataMap) ->
+        viewModel.allDataTS.observe(this) { (total, dataMap) ->
             setVisibilityTSCard(total, dataMap)
         }
     }
 
     private fun setVisibilityTSCard(total: Int, dataMap: Map<String, Int>) {
-        Log.v("LOG_TEXT_SCANN_FRAGMENT", "${total}")
+        progressBarOff()
         if (total > 0 && dataMap.entries.isNotEmpty()) {
             binding.txtValueTotalUsesTS.text = "$total"
             binding.txtNotUseTS.visibility = View.GONE
@@ -97,15 +91,16 @@ class DetailPatientFragment : Fragment() {
     }
 
     private fun setLRObservers() {
-        viewModel.totalTimesPlayedLR.observe(viewLifecycleOwner) {
+        viewModel.totalTimesPlayedLR.observe(this) {
             binding.cvMetricsLR.visibility =
                 if (it != 0) {
+                    progressBarOff()
                     View.VISIBLE
                 } else {
                     View.GONE
                 }
         }
-        viewModel.totalPieLR.observe(viewLifecycleOwner) { (total, percentError) ->
+        viewModel.totalPieLR.observe(this) { (total, percentError) ->
             setPieGraph(
                 total,
                 percentError,
@@ -113,7 +108,7 @@ class DetailPatientFragment : Fragment() {
                 binding.txtTitlePieTotalGraphLR
             )
         }
-        viewModel.weekPieLR.observe(viewLifecycleOwner) { (countCorrect, countError) ->
+        viewModel.weekPieLR.observe(this) { (countCorrect, countError) ->
             if ((countCorrect + countError).toInt() == 0) {
                 setGraphsVisibility(
                     binding.pieWeekChartLR,
@@ -132,16 +127,19 @@ class DetailPatientFragment : Fragment() {
                 )
             }
         }
-        viewModel.resultsLastWeekLR.observe(viewLifecycleOwner) { resultsLastWeek ->
+        viewModel.resultsLastWeekLR.observe(this) { resultsLastWeek ->
             setBarGraph(resultsLastWeek, binding.barChartLR)
         }
     }
 
     private fun setCWObservers() {
-        viewModel.wasNotPlayedCW.observe(viewLifecycleOwner) {
-            binding.cvMetricsCW.visibility = if (it) View.VISIBLE else View.GONE
+        viewModel.wasNotPlayedCW.observe(this) {
+            binding.cvMetricsCW.visibility = if (it) {
+                progressBarOff()
+                View.VISIBLE
+            } else View.GONE
         }
-        viewModel.totalPieCW.observe(viewLifecycleOwner) { (total, percentError) ->
+        viewModel.totalPieCW.observe(this) { (total, percentError) ->
             setPieGraph(
                 total,
                 percentError,
@@ -149,7 +147,7 @@ class DetailPatientFragment : Fragment() {
                 binding.txtTitlePieTotalGraphCW
             )
         }
-        viewModel.weekPieCW.observe(viewLifecycleOwner) { (countCorrect, countError) ->
+        viewModel.weekPieCW.observe(this) { (countCorrect, countError) ->
             if ((countCorrect + countError).toInt() == 0) {
                 setGraphsVisibility(
                     binding.pieWeekChartCW,
@@ -168,19 +166,22 @@ class DetailPatientFragment : Fragment() {
                 )
             }
         }
-        viewModel.hardWordsCW.observe(viewLifecycleOwner) { letter ->
+        viewModel.hardWordsCW.observe(this) { letter ->
             binding.txtValueLettersDificultsCW.text = letter.toString()
         }
-        viewModel.resultsLastWeekCW.observe(viewLifecycleOwner) { resultsLastWeek ->
+        viewModel.resultsLastWeekCW.observe(this) { resultsLastWeek ->
             setBarGraph(resultsLastWeek, binding.barChartCW)
         }
     }
 
     private fun setWITLObservers() {
-        viewModel.wasNotPlayedWITL.observe(viewLifecycleOwner) {
-            binding.cvMetricsWITL.visibility = if (it) View.VISIBLE else View.GONE
+        viewModel.wasNotPlayedWITL.observe(this) {
+            binding.cvMetricsWITL.visibility = if (it) {
+                progressBarOff()
+                View.VISIBLE
+            } else View.GONE
         }
-        viewModel.totalPieWITL.observe(viewLifecycleOwner) { (total, percentError) ->
+        viewModel.totalPieWITL.observe(this) { (total, percentError) ->
             setPieGraph(
                 total,
                 percentError,
@@ -188,7 +189,7 @@ class DetailPatientFragment : Fragment() {
                 binding.txtTitlePieTotalGraphWITL
             )
         }
-        viewModel.weekPieWITL.observe(viewLifecycleOwner) { (countCorrect, countError) ->
+        viewModel.weekPieWITL.observe(this) { (countCorrect, countError) ->
             if ((countCorrect + countError).toInt() == 0) {
                 setGraphsVisibility(
                     binding.pieWeekChartWITL,
@@ -207,10 +208,10 @@ class DetailPatientFragment : Fragment() {
                 )
             }
         }
-        viewModel.hardLettersWITL.observe(viewLifecycleOwner) { letter ->
+        viewModel.hardLettersWITL.observe(this) { letter ->
             binding.txtValueLettersDificultsWITL.text = letter.toString()
         }
-        viewModel.resultsLastWeekWITL.observe(viewLifecycleOwner) { resultsLastWeek ->
+        viewModel.resultsLastWeekWITL.observe(this) { resultsLastWeek ->
             setBarGraph(resultsLastWeek, binding.barChartWITL)
         }
     }
@@ -235,7 +236,7 @@ class DetailPatientFragment : Fragment() {
                 PieEntry(countCorrect, "Total correctos"),
                 PieEntry(countError, "Total error")
             )
-            val colors = intArrayOf(Color.CYAN, Color.RED)
+            val colors = intArrayOf(Color.GREEN, Color.RED)
             val dataSet = PieDataSet(entries, "")
             dataSet.colors = colors.asList()
             dataSet.valueTextSize = 12f
@@ -250,7 +251,7 @@ class DetailPatientFragment : Fragment() {
                 animateY(300)
             }
         } catch (e: Exception) {
-            Log.d(TAG, "Fallo: ${e.javaClass}")
+            Log.d(ContentValues.TAG, "Fallo: ${e.javaClass}")
         }
     }
 
@@ -274,8 +275,8 @@ class DetailPatientFragment : Fragment() {
                 labels.add(date)
             }
             labels[labels.lastIndex] = "Hoy"
-            val barDataSet = BarDataSet(entries, "Ejercícios por día")
-            barDataSet.setColors(Color.CYAN)
+            val barDataSet = BarDataSet(entries, "Ejercicios por día")
+            barDataSet.setColors(Color.GREEN)
             val errorBarDataSet = BarDataSet(errorEntries, "Errores por día")
             errorBarDataSet.setColors(Color.RED)
             barDataSet.valueTextSize = 12f
@@ -302,7 +303,7 @@ class DetailPatientFragment : Fragment() {
 
             barChart.invalidate()
         } catch (e: Exception) {
-            Log.d(TAG, "Fallo2: ${e.javaClass}")
+            Log.d(ContentValues.TAG, "Fallo2: ${e.javaClass}")
         }
     }
 
@@ -322,9 +323,9 @@ class DetailPatientFragment : Fragment() {
                 labels.add(date)
             }
             labels[labels.lastIndex] = "Hoy"
-            binding.txtTitleGraphTS.text = "Úso de la última semana ($countWeek)"
-            val barDataSet = BarDataSet(entries, "Escanéos por día")
-            barDataSet.setColors(Color.CYAN)
+            binding.txtTitleGraphTS.text = "Uso de la última semana ($countWeek)"
+            val barDataSet = BarDataSet(entries, "Escaneos por día")
+            barDataSet.setColors(Color.GREEN)
             barDataSet.valueTextSize = 12f
             val barData = BarData(barDataSet)
             val granularity = if ((maxCount / 10) > 1) maxCount / 10 else 1
@@ -379,27 +380,47 @@ class DetailPatientFragment : Fragment() {
                 else patient.email[0].uppercase()
         }
         binding.btnTrash.setOnClickListener {
-            viewModel.unbindPatient(patient.email)
-            viewModel.resultDeletePatient.observe(viewLifecycleOwner) {
-                if (it == FirebaseResult.TaskSuccess)
-                    requireActivity().supportFragmentManager.popBackStack()
-                else Toast.makeText(
-                    activity,
-                    "No se pudo desvincular al paciente, intentelo mas tarde",
-                    Toast.LENGTH_SHORT
-                )
-                    .show()
-            }
+            showConfirmationDialog(patient.email)
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun showConfirmationDialog(emailPatient: String) {
+        val builder = AlertDialog.Builder(this)
+        builder.setMessage("¿Está segura/o de que quiere desvincular al paciente: $emailPatient?")
+            .setPositiveButton("Confirmar") { _, _ ->
+                // Llama a la acción de confirmación
+                unbindPatient(emailPatient)
+            }
+            .setNegativeButton("Cancelar", null)
+        builder.create().show()
     }
 
-    override fun onDetach() {
-        super.onDetach()
+    private fun unbindPatient(email: String) {
+        viewModel.unbindPatient(email)
+        viewModel.resultDeletePatient.observe(this) {
+            if (it == FirebaseResult.TaskSuccess)
+                finish()
+            else Toast.makeText(
+                this,
+                "No se pudo desvincular al paciente, inténtelo más tarde",
+                Toast.LENGTH_SHORT
+            )
+                .show()
+        }
+    }
+
+    private fun setBtnClose() {
+        binding.icClose.setOnClickListener {
+            finish()
+        }
+    }
+
+    private fun progressBarOff(){
+        binding.progressBar.visibility = View.GONE
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         viewModel.cleanPatient()
     }
 }

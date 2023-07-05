@@ -30,7 +30,7 @@ interface FireStoreService {
 
     suspend fun getProfessional(email: String): Professional
 
-    suspend fun getIsLinked(email: String): Boolean?
+    suspend fun getIsLinked(email: String): Flow<Boolean?>
 
     suspend fun bindProfessionalToPatient (emailPatient: String, emailProfessional: String): FirebaseResult
 
@@ -89,5 +89,11 @@ interface FireStoreService {
     suspend fun getIncompleteGameNames(email: String, lastMondayDate: String): List<String>
 
     suspend fun increaseGoalForGames(email: String, games: List<String>)
+
+    suspend fun checkIfObjectiveAndWeeklyObjectivesWereCompleted(game: String, type: String): Pair<Boolean, Boolean>
+
+    suspend fun getAllProfessional(): Flow<List<ProfessionalValidation>>
+
+    suspend fun saveValidationTOProfessional(emailProfessional: String, approval: Boolean)
 
 }

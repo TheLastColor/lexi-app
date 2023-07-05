@@ -19,6 +19,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.MetadataChanges
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -250,23 +251,20 @@ class FireStoreServiceImpl @Inject constructor(
         }
     }
 
-    override suspend fun getIsLinked(email: String): Boolean? {
-        var linkProfessional: Boolean? = null
-        userCollection.document(email).get()
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val documentSnapshot = task.result
-                    if (documentSnapshot.exists()) {
-                        linkProfessional =
-                            documentSnapshot.data?.get("professional_link") as String? != null
-                        Log.v("FSSImpl_PRE_LINK_PROF", "$linkProfessional")
-                    }
-                } else {
-                    throw FirestoreException("Problema en firestore para obtener datos")
-                }
-            }.await()
-        Log.v("FSSImpl_POST_LINK_PROF", "$linkProfessional")
-        return linkProfessional
+    override suspend fun getIsLinked(email: String)= callbackFlow {
+        val listener = userCollection.document(email).addSnapshotListener { querySnapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            var linkProfessional: Boolean? = null
+            if (querySnapshot != null && querySnapshot.exists()) {
+                val email = querySnapshot.data?.get("professional_link") as String?
+                linkProfessional = email != null
+            }
+            trySend(linkProfessional).isSuccess
+        }
+        awaitClose { listener.remove() }
     }
 
     override suspend fun bindProfessionalToPatient(
@@ -780,10 +778,10 @@ class FireStoreServiceImpl @Inject constructor(
                         val goal = objectiveFields["goal"] as Long
                         val progress = objectiveFields["progress"] as Long?
                         var completed = objectiveFields["completed"] as Boolean?
-                        if (gameValue == game && typeValue == type && goal != progress && !completed!!) {
-                            val updatedProgress = (objectiveFields["progress"] as Long?)?.toInt()?.plus(1)
+                        if (gameValue == game && typeValue == type) {
+                            val updatedProgress = progress?.toInt()?.plus(1)
                             if (updatedProgress != null) {
-                                if (updatedProgress >= goal) {
+                                if (updatedProgress.toLong() == goal) {
                                     completed = true
                                     saveCompleteObjectives(userId ,goal, objectiveFields["title"] as String)
                                 }
@@ -797,6 +795,59 @@ class FireStoreServiceImpl @Inject constructor(
                 }
             }
         }
+    }
+
+    override suspend fun checkIfObjectiveAndWeeklyObjectivesWereCompleted(game: String, type: String): Pair<Boolean, Boolean> {
+        return suspendCoroutine { continuation ->
+            val timeZone = ZoneId.of("America/Argentina/Buenos_Aires")
+            val currentDate = LocalDate.now(timeZone)
+            val lastMonday = currentDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+            val lastMondayDate = lastMonday.format(dateFormatter)
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            val userId = currentUser?.uid
+
+            if (userId != null) {
+                objectivesCollection
+                    .document(userId)
+                    .collection(lastMondayDate)
+                    .get()
+                    .addOnSuccessListener { querySnapshot ->
+                        if (!querySnapshot.isEmpty) {
+                            var isGameCompleted = false
+                            var objectivesCompleted = 0
+
+                            querySnapshot.documents.forEach { documentSnapshot ->
+                                val objectiveFields = documentSnapshot.data
+
+                                val gameValue = objectiveFields?.get("game") as String
+                                val typeValue = objectiveFields["type"] as String
+                                val completed = objectiveFields["completed"] as Boolean
+                                val goal = objectiveFields["goal"] as Long
+                                val progress = objectiveFields["progress"] as Long
+
+                                if (gameValue == game &&
+                                    typeValue == type &&
+                                    completed &&
+                                    progress == goal) {
+                                    isGameCompleted = true
+                                }
+
+                                if (completed) {
+                                    objectivesCompleted++
+                                }
+                            }
+                            Log.v(TAG, "particular objective completed: $isGameCompleted, objectives of week completed: ${objectivesCompleted >= 4}")
+                            continuation.resume(Pair(isGameCompleted, objectivesCompleted >= 4))
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.v(TAG, "error to get objectives data")
+                        continuation.resumeWithException(exception)
+                    }
+            }
+        }
+
     }
 
     private fun saveCompleteObjectives(uid: String,count: Long, title: String) {
@@ -831,6 +882,44 @@ class FireStoreServiceImpl @Inject constructor(
             }
 
         awaitClose { listener.remove() }
+    }
+
+    override suspend fun getAllProfessional() = callbackFlow {
+        val listener = professionalCollection.addSnapshotListener(MetadataChanges.EXCLUDE) { querySnapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            val result = mutableListOf<ProfessionalValidation>()
+            for (document in querySnapshot!!.documents) {
+                val email = document.id
+                val data = document.data!!
+                result.add(
+                    ProfessionalValidation(
+                        name = data["user_name"] as String,
+                        email = email,
+                        medicalRegistration = data["medical_registration"] as String,
+                        validated = data["is_verificated_account"] as Boolean
+                    )
+                )
+            }
+            trySend(result.toList()).isSuccess
+        }
+
+        awaitClose { listener.remove() }
+    }
+
+    override suspend fun saveValidationTOProfessional(emailProfessional: String, approval: Boolean) {
+        try{
+            professionalCollection
+                .document(emailProfessional)
+                .update("is_verificated_account", approval)
+                .addOnSuccessListener {
+                    Log.v(TAG, "saved validation to professional $emailProfessional")
+                }
+        }catch (e: FirestoreException){
+            Log.v(TAG, "error to save validation to professional $emailProfessional with exception ${e.message}")
+        }
     }
 
     companion object {

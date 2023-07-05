@@ -1,10 +1,11 @@
 package com.example.lexiapp.ui.games.whereistheletter
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -13,16 +14,16 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.lexiapp.R
 import com.example.lexiapp.databinding.ActivityWhereIsTheLetterBinding
-import com.example.lexiapp.ui.games.correctword.CorrectWordActivity
 import com.example.lexiapp.ui.games.whereistheletter.result.NegativeResultWhereIsTheLetterActivity
 import com.example.lexiapp.ui.games.whereistheletter.result.PositiveResultWhereIsTheLetterActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.util.*
 
 @AndroidEntryPoint
 class WhereIsTheLetterActivity : AppCompatActivity() {
@@ -32,7 +33,7 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
     //private lateinit var observerWord:
     private lateinit var binding: ActivityWhereIsTheLetterBinding
 
-    //Should be inject
+    private lateinit var textToSpeech: TextToSpeech
 
     private var positions = mutableMapOf<Int, Button>()
 
@@ -41,9 +42,21 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
         binding = ActivityWhereIsTheLetterBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
         vM.onOmitWord()
+        setTextToSpeech()
         setWordObserver()
         progressBarOn()
         setListeners()
+    }
+
+    private fun setTextToSpeech(){
+        val language = Locale("es", "US")
+
+        textToSpeech = TextToSpeech(this) {
+            if (it != TextToSpeech.ERROR) {
+                textToSpeech.language = language
+                textToSpeech.setSpeechRate(0.6f)
+            }
+        }
     }
 
     private fun setWordObserver() {
@@ -51,7 +64,9 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
             if (it.isNullOrEmpty()) {
                 progressBarOn()
             } else {
-                setValues()
+                if (vM.visibleWord.value != it){
+                    setValues()
+                }
                 progressBarOff()
                 binding.btnOtherWord.isClickable = true
             }
@@ -83,6 +98,7 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
 
     private fun listenerOtherWord() {
         binding.btnOtherWord.setOnClickListener {
+            vM.setVisibleWord("")
             if (!vM.basicWord.hasObservers()) setWordObserver()
             binding.btnOtherWord.isClickable = false
             vM.onPositionDeselected()
@@ -96,6 +112,8 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
         listenerResult()
         listenerOtherWord()
         btnBack()
+        btnReadWord()
+        btnHelp()
     }
 
     private fun listenerResult() {
@@ -166,6 +184,7 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
 
     private fun setValues() {
         val word = vM.basicWord.value!!
+        vM.setVisibleWord(word)
         Log.v("init_word_in_activity", "response word: $word")
         Log.v("init_word_in_activity", "response word: ${vM.basicWord.value!!}")
         binding.txtVariableWord.text = word
@@ -239,6 +258,63 @@ class WhereIsTheLetterActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener {
             finish()
         }
+    }
+
+    private fun btnReadWord() {
+        binding.iconVolume.setOnClickListener {
+
+            if (this.textToSpeech.isSpeaking) {
+                this.textToSpeech.stop()
+            }
+
+            if (binding.txtVariableWord.text.isNotEmpty()) {
+                this.textToSpeech
+                    .speak(
+                        binding.txtVariableWord.text.toString(),
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        null
+                    )
+            }
+        }
+
+    }
+
+    private fun btnHelp() {
+        binding.btnHelp.setOnClickListener {
+            setAlertBuilderToGoToYoutube()
+        }
+    }
+
+    private fun setAlertBuilderToGoToYoutube() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Tutorial de Palabra Correcta")
+            .setMessage("¿Desea salir de LEXI e ir a YouTube?")
+            .setPositiveButton("SI"){dialog, _ ->
+                try{
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.data = Uri.parse(TUTORIAL_LINK)
+                    intent.setPackage("com.google.android.youtube")
+                    startActivity(intent)
+                }catch (e:Exception){
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(TUTORIAL_LINK)))
+                }
+
+            }
+            .setNegativeButton("NO") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        textToSpeech.shutdown()
+    }
+
+    companion object{
+        private const val TUTORIAL_LINK = "https://www.youtube.com/shorts/rA4dQl9czl0"
     }
 }
 
