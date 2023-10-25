@@ -76,7 +76,6 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun setUserType(email: String) {
-
         viewModelScope.launch(Dispatchers.IO){
             val userType = profileUseCases.getUserType()
             if(userType != null){
